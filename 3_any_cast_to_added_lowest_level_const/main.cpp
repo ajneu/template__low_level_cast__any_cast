@@ -88,7 +88,7 @@ T myany_cast(MyAny &ay)
 #ifndef NDEBUG
                 (std::cout << "(removing lowest-level const)" << std::endl),
 #endif
-                static_cast<T>(any_cast<typename remove_lowest_const<T>::type>(ay)))
+                const_cast<T>(any_cast<typename remove_lowest_const<T>::type>(ay)))
              : /* fail */ any_cast<T>(ay)));
 }
 
@@ -101,7 +101,7 @@ int main()
 
     std::cout << "***try normal any_cast:" << std::endl;
     try {
-      std::cout << any_cast<const char *>(ay) << std::endl;
+      std::cout << any_cast<char const*>(ay) << std::endl;
     }
     catch(const std::experimental::bad_any_cast &e) {
       std::cout << "fails" << std::endl;
@@ -115,10 +115,40 @@ int main()
 
     std::cout << "***try myany_cast:" << std::endl;
     try {
-      std::cout << myany_cast<const char *>(may) << std::endl;
+      std::cout << myany_cast<char const*>(may) << std::endl;
     }
     catch(const std::experimental::bad_any_cast &e) {
       std::cout << "fails" << std::endl;
+    }
+  }
+
+  std::cout << "\n" << std::endl;
+
+  {
+    char *x = str;
+    MyAny may{&x};
+
+    std::cout << "***try myany_cast:" << std::endl;
+    try {
+      std::cout << *myany_cast<char const* *>(may) << std::endl;
+    }
+    catch(const std::experimental::bad_any_cast &e) {
+      std::cout << "fails" << std::endl;
+    }
+  }
+
+  std::cout << "\n" << std::endl;
+
+  {
+    char *x = str;
+    MyAny may{&x};
+
+    std::cout << "***try myany_cast:" << std::endl;
+    try {
+      std::cout << *myany_cast<char const* const*>(may) << std::endl;
+    }
+    catch(const std::experimental::bad_any_cast &e) {
+      std::cout << "this is no sliver bullet, since if we want to myany_cast to a type with multiple low-level consts, we'd have to compare various permutations (!) of const-removal with the actual typeid (curr_type)" << std::endl;
     }
   }
 
