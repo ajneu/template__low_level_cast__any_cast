@@ -38,52 +38,12 @@ struct remove_lowest_const<T, typename std::enable_if<std::is_pointer<T>::value 
 using std::experimental::any;
 using std::experimental::any_cast;
 
-class MyAny : public any {
-public:
-  MyAny() : any(), curr_type{&typeid(void)}
-  {}
-
-  MyAny(const MyAny& other) : any{other}, curr_type{other.curr_type}
-  {}
-
-  MyAny(MyAny&& other) : any{std::move(other)}, curr_type{other.curr_type}
-  {}
-
-  template <typename ValueType>
-  MyAny(ValueType&& value) : any(std::forward<ValueType>(value)), curr_type{&typeid(typename std::decay<ValueType>::type)}
-  {}
-
-  MyAny& operator=(const MyAny& rhs) {
-    static_cast<any&>(*this).operator=(rhs);
-    curr_type = rhs.curr_type;
-    return *this;
-  }
-
-  MyAny& operator=(MyAny&& rhs) {
-    static_cast<any&>(*this).operator=(std::move(rhs));
-    curr_type = rhs.curr_type;
-    return *this;
-  }
-
-  template<typename ValueType>
-  MyAny& operator=(ValueType&& rhs)
-  {
-    static_cast<any&>(*this).operator=(std::forward<ValueType>(rhs));
-    curr_type = rhs.curr_type;
-    return *this;
-  }
-
-private:
-  const std::type_info *curr_type;
-  template<typename T> friend T myany_cast(MyAny &ay);
-};
-
 template<typename T>
-T myany_cast(MyAny &ay)
+T myany_cast(any &ay)
 {
-  return ((&typeid(T) == ay.curr_type)
+  return ((&typeid(T) == &ay.type())
           ? any_cast<T>(ay)
-          : ((&typeid(typename remove_lowest_const<T>::type) == ay.curr_type)
+          : ((&typeid(typename remove_lowest_const<T>::type) == &ay.type())
              ? (
 #ifndef NDEBUG
                 (std::cout << "(removing lowest-level const)" << std::endl),
@@ -111,7 +71,7 @@ int main()
   std::cout << "\n" << std::endl;
 
   {
-    MyAny may{str};
+    any may{str};
 
     std::cout << "***try myany_cast:" << std::endl;
     try {
@@ -126,7 +86,7 @@ int main()
 
   {
     char *x = str;
-    MyAny may{&x};
+    any may{&x};
 
     std::cout << "***try myany_cast:" << std::endl;
     try {
@@ -141,7 +101,7 @@ int main()
 
   {
     char *x = str;
-    MyAny may{&x};
+    any may{&x};
 
     std::cout << "***try myany_cast:" << std::endl;
     try {
