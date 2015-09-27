@@ -1,4 +1,5 @@
 #include <iostream>
+#include <typeinfo>
 #include <cassert>
 
 template<typename T1, typename T2>
@@ -17,37 +18,24 @@ constexpr bool same_type_and_t1_possib_recurse_lowlev_const()
             ));
 }
 
-using ptr_type_a = void(*)();
-using ptr_type_b = const ptr_type_a(*)(const ptr_type_a);
-
-
-static_assert(std::is_same<const ptr_type_a, void(* const)()>::value, "const ptr_type_a needs to be same as void(* const)()");
-
-
-template <typename T>
-struct A {
-public:
-  static constexpr void a()
-  {}
-};
-
+using ptr_type_b = const std::type_info *(*)(const std::type_info *);
 
 struct B {
 public:
   template <typename T2>
-  static constexpr const ptr_type_a b(const ptr_type_a p)
+  static constexpr const std::type_info *b(const std::type_info *p)
   {
-    return ((&A<T2>::a == p)
-            ? &A<T2>::a
+    return ((&typeid(T2) == p)
+            ? &typeid(T2)
             : nullptr);
   }
 
   template <typename T2, typename T1, typename... T0>
-  static constexpr const ptr_type_a b(const ptr_type_a p)
+  static constexpr const std::type_info *b(const std::type_info *p)
   {
     static_assert(same_type_and_t1_possib_recurse_lowlev_const<T1, T2>(), "error here");
-    return ((&A<T1>::a == p)
-            ? &A<T2>::a
+    return ((&typeid(T1) == p)
+            ? &typeid(T2)
             : b<T2, T0...>(p));
   }
 
@@ -63,17 +51,17 @@ public:
   // this should actually be in the constructor (how to do it?)
   template <typename T, typename... TLL>
   void set_type() {
-    ptr_a = &A<T>::a;
+    ptr_a = &typeid(T);
     ptr_b = &B::b<T, TLL...>;
   }
   
-  const ptr_type_a operator&() const {
+  const std::type_info *operator&() const {
     return ptr_a;
   }
 
   template <typename Tother>
-  const ptr_type_a main_type_from_linked() const {
-    return ptr_b(&A<Tother>::a);
+  const std::type_info *main_type_from_linked() const {
+    return ptr_b(&typeid(Tother));
   }
 
   bool operator==(const mytype_info &rhs) const {
@@ -83,8 +71,8 @@ public:
     return !(ptr_a == rhs.ptr_a);
   }
 private:
-  //const ptr_type_a ptr_a;
-  ptr_type_a ptr_a;
+  //const std::type_info * const ptr_a;
+  const std::type_info *ptr_a;
 
   //const ptr_type_b ptr_b;
   ptr_type_b ptr_b;
